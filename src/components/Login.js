@@ -56,9 +56,10 @@ function Login({ setUser }) {
         role 
       };
 
-      localStorage.setItem("user", JSON.stringify(userData));
+      // Use the setUser function passed from App.js
       setUser(userData);
 
+      // Navigate based on role
       if (role === "hod") navigate("/hod-dashboard");
       else if (role === "teacher") navigate("/teacher-dashboard");
       else navigate("/student-dashboard");
@@ -70,13 +71,17 @@ function Login({ setUser }) {
     }
   };
 
+  const handleRegisterClick = () => {
+    navigate('/register', { state: { role: role || 'student' } });
+  };
+
   return (
-    <div className="gradient-bg" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
+    <div className="gradient-bg" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', padding: '20px' }}>
       <div className="container" style={{ maxWidth: '500px' }}>
-        <h2>🔐 Login as {role.charAt(0).toUpperCase() + role.slice(1)}</h2>
+        <h2>🔐 Login {role && `as ${role.charAt(0).toUpperCase() + role.slice(1)}`}</h2>
         <form onSubmit={handleLogin}>
           <div className="form-group">
-            <label>Select Role:</label>
+            <label>Select Role *</label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
@@ -90,7 +95,7 @@ function Login({ setUser }) {
           </div>
 
           <div className="form-group">
-            <label>Full Name:</label>
+            <label>Full Name *</label>
             <input
               type="text"
               placeholder="Enter your full name"
@@ -101,18 +106,19 @@ function Login({ setUser }) {
           </div>
 
           <div className="form-group">
-            <label>Phone Number (Password):</label>
+            <label>Phone Number (Password) *</label>
             <input
               type="tel"
               placeholder="Enter your phone number"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               required
+              maxLength="10"
             />
           </div>
 
-          <button type="submit" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+          <button type="submit" disabled={loading} style={{ width: '100%' }}>
+            {loading ? 'Logging in...' : '🔐 Login'}
           </button>
 
           {error && (
@@ -122,10 +128,38 @@ function Login({ setUser }) {
           )}
         </form>
 
+        {(role === 'student' || role === 'hod') && (
+          <div style={{ textAlign: 'center', marginTop: '20px', padding: '15px', background: '#f0f0f0', borderRadius: '10px' }}>
+            <p style={{ color: '#666', marginBottom: '10px' }}>
+              Don't have an account?
+            </p>
+            <button 
+              onClick={handleRegisterClick} 
+              className="btn btn-success"
+              style={{ width: '100%' }}
+            >
+              📝 Register as {role === 'student' ? 'Student' : 'HOD'}
+            </button>
+          </div>
+        )}
+
+        {role === 'teacher' && (
+          <div className="alert alert-info" style={{ marginTop: '20px' }}>
+            <strong>Note:</strong> Teachers cannot self-register. Please contact your HOD to create your account.
+          </div>
+        )}
+
         <div style={{ textAlign: 'center', marginTop: '20px' }}>
           <button 
             onClick={() => navigate('/')} 
-            style={{ background: 'transparent', color: '#667eea', textDecoration: 'underline' }}
+            style={{ 
+              background: 'transparent', 
+              color: '#667eea', 
+              textDecoration: 'underline',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '15px'
+            }}
           >
             ← Back to Role Selection
           </button>

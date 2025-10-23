@@ -453,23 +453,40 @@ table tr:hover {
   text-align: center;
   padding: 40px;
   font-size: 18px;
-  color: #667eea;
+  color: white;
+  font-weight: 600;
 }
 
 .loading::after {
   content: '';
-  display: inline-block;
-  width: 30px;
-  height: 30px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #667eea;
+  display: block;
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-top: 5px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-left: 10px;
-  vertical-align: middle;
+  margin: 20px auto 0;
 }
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Prevent layout shift during loading */
+.gradient-bg {
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Better button interaction */
+button {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth transitions */
+* {
+  transition: opacity 0.2s ease;
 }

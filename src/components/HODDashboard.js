@@ -273,9 +273,15 @@ function HODDashboard({ user }) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    navigate('/');
-  };
+  // Clear localStorage
+  localStorage.removeItem('user');
+  
+  // Navigate to home
+  navigate('/', { replace: true });
+  
+  // Force reload to clear all state
+  window.location.reload();
+};
 
   const toggleClassSelection = (className) => {
     setNewTeacher(prev => ({

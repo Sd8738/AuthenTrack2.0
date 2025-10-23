@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 function RoleSelection() {
   const navigate = useNavigate();
 
-  const handleRoleSelect = (role) => {
+  const handleLogin = (role) => {
     navigate('/login', { state: { role } });
   };
 
   const handleRegister = (role) => {
+    console.log('Navigating to register with role:', role); // Debug log
     navigate('/register', { state: { role } });
   };
 
@@ -27,14 +28,20 @@ function RoleSelection() {
           <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <button 
               className="btn"
-              onClick={() => handleRoleSelect('student')}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLogin('student');
+              }}
               style={{ width: '100%' }}
             >
               🔐 Login
             </button>
             <button 
               className="btn btn-success"
-              onClick={() => handleRegister('student')}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRegister('student');
+              }}
               style={{ width: '100%' }}
             >
               📝 Register
@@ -49,12 +56,15 @@ function RoleSelection() {
           <p>Manage classes and track attendance</p>
           <button 
             className="btn"
-            onClick={() => handleRoleSelect('teacher')}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleLogin('teacher');
+            }}
             style={{ width: '100%', marginTop: '20px' }}
           >
             🔐 Login
           </button>
-          <p style={{ fontSize: '12px', color: '#999', marginTop: '10px' }}>
+          <p style={{ fontSize: '12px', color: '#999', marginTop: '10px', fontStyle: 'italic' }}>
             Teachers cannot self-register. Contact your HOD.
           </p>
         </div>
@@ -67,14 +77,20 @@ function RoleSelection() {
           <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <button 
               className="btn"
-              onClick={() => handleRoleSelect('hod')}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLogin('hod');
+              }}
               style={{ width: '100%' }}
             >
               🔐 Login
             </button>
             <button 
               className="btn btn-success"
-              onClick={() => handleRegister('hod')}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRegister('hod');
+              }}
               style={{ width: '100%' }}
             >
               📝 Register

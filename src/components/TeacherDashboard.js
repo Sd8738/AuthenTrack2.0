@@ -230,9 +230,15 @@ function TeacherDashboard({ user }) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    navigate('/');
-  };
+  // Clear localStorage
+  localStorage.removeItem('user');
+  
+  // Navigate to home
+  navigate('/', { replace: true });
+  
+  // Force reload to clear all state
+  window.location.reload();
+};
 
   const clearFilters = () => {
     setSearchStudent('');

@@ -156,9 +156,15 @@ function StudentDashboard({ user }) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    navigate('/');
-  };
+  // Clear localStorage
+  localStorage.removeItem('user');
+  
+  // Navigate to home
+  navigate('/', { replace: true });
+  
+  // Force reload to clear all state
+  window.location.reload();
+};
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'N/A';
