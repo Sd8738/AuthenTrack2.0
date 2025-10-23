@@ -7,7 +7,10 @@ function HODDashboard({ user }) {
   const navigate = useNavigate();
   const currentUser = user || JSON.parse(localStorage.getItem('user') || 'null');
 
+  const [activeTab, setActiveTab] = useState('teachers'); // teachers, students, departments
   const [teachers, setTeachers] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [classes, setClasses] = useState([]);
   const [divisions, setDivisions] = useState([]);
   
@@ -20,12 +23,14 @@ function HODDashboard({ user }) {
     assignedDivisions: []
   });
 
+  const [newDepartment, setNewDepartment] = useState('');
   const [newClass, setNewClass] = useState('');
   const [newDivision, setNewDivision] = useState('');
   
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [searchStudent, setSearchStudent] = useState('');
 
   useEffect(() => {
     if (!currentUser) {
@@ -38,7 +43,7 @@ function HODDashboard({ user }) {
   const fetchHODData = async () => {
     setLoading(true);
     try {
-      // Fetch teachers in this department
+      // Fetch teachers
       const teachersQuery = query(
         collection(db, 'teachers'),
         where('department', '==', currentUser.department)
@@ -50,14 +55,31 @@ function HODDashboard({ user }) {
       });
       setTeachers(teachersList);
 
-      // Fetch classes and divisions from department config
-      const deptDoc = await getDocs(
-        query(collection(db, 'departments'), where('name', '==', currentUser.department))
+      // Fetch students
+      const studentsQuery = query(
+        collection(db, 'students'),
+        where('department', '==', currentUser.department)
       );
-      if (!deptDoc.empty) {
-        const deptData = deptDoc.docs[0].data();
-        setClasses(deptData.classes || []);
-        setDivisions(deptData.divisions || []);
+      const studentsSnapshot = await getDocs(studentsQuery);
+      const studentsList = [];
+      studentsSnapshot.forEach(doc => {
+        studentsList.push({ id: doc.id, ...doc.data() });
+      });
+      setStudents(studentsList);
+
+      // Fetch all departments
+      const deptSnapshot = await getDocs(collection(db, 'departments'));
+      const deptList = [];
+      deptSnapshot.forEach(doc => {
+        deptList.push({ id: doc.id, ...doc.data() });
+      });
+      setDepartments(deptList);
+
+      // Get current department's classes and divisions
+      const currentDept = deptList.find(d => d.name === currentUser.department);
+      if (currentDept) {
+        setClasses(currentDept.classes || []);
+        setDivisions(currentDept.divisions || []);
       }
     } catch (error) {
       console.error('Error fetching HOD data:', error);
@@ -107,9 +129,68 @@ function HODDashboard({ user }) {
         assignedDivisions: []
       });
       fetchHODData();
+      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
       console.error('Error adding teacher:', error);
       setErrorMessage('Failed to add teacher: ' + error.message);
+    }
+  };
+
+  const handleDeleteTeacher = async (teacherId) => {
+    if (!window.confirm('Are you sure you want to delete this teacher?')) return;
+
+    try {
+      await deleteDoc(doc(db, 'teachers', teacherId));
+      setSuccessMessage('Teacher deleted successfully!');
+      fetchHODData();
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Error deleting teacher:', error);
+      setErrorMessage('Failed to delete teacher: ' + error.message);
+    }
+  };
+
+  const handleDeleteStudent = async (studentId, studentName) => {
+    if (!window.confirm(`Are you sure you want to remove student ${studentName}? This action cannot be undone.`)) return;
+
+    try {
+      await deleteDoc(doc(db, 'students', studentId));
+      setSuccessMessage(`Student ${studentName} removed successfully!`);
+      fetchHODData();
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Error deleting student:', error);
+      setErrorMessage('Failed to remove student: ' + error.message);
+    }
+  };
+
+  const handleAddDepartment = async (e) => {
+    e.preventDefault();
+    if (!newDepartment.trim()) return;
+
+    try {
+      // Check if department already exists
+      const existing = departments.find(d => d.name.toLowerCase() === newDepartment.trim().toLowerCase());
+      if (existing) {
+        setErrorMessage('This department already exists!');
+        return;
+      }
+
+      await addDoc(collection(db, 'departments'), {
+        name: newDepartment.trim(),
+        classes: ['SE', 'TE', 'BE'],
+        divisions: ['A', 'B', 'C'],
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser.id
+      });
+
+      setSuccessMessage(`Department "${newDepartment}" added successfully!`);
+      setNewDepartment('');
+      fetchHODData();
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Error adding department:', error);
+      setErrorMessage('Failed to add department: ' + error.message);
     }
   };
 
@@ -125,24 +206,24 @@ function HODDashboard({ user }) {
       const deptSnapshot = await getDocs(deptQuery);
 
       if (deptSnapshot.empty) {
-        // Create department document
         await addDoc(collection(db, 'departments'), {
           name: currentUser.department,
-          classes: [newClass],
+          classes: [newClass.trim()],
           divisions: divisions
         });
       } else {
-        // Update existing
         const deptDoc = deptSnapshot.docs[0];
         const currentClasses = deptDoc.data().classes || [];
-        if (!currentClasses.includes(newClass)) {
-          await updateDoc(doc(db, 'departments', deptDoc.id), {
-            classes: [...currentClasses, newClass]
-          });
+        if (currentClasses.includes(newClass.trim())) {
+          setErrorMessage('This class already exists!');
+          return;
         }
+        await updateDoc(doc(db, 'departments', deptDoc.id), {
+          classes: [...currentClasses, newClass.trim()]
+        });
       }
 
-      setClasses([...classes, newClass]);
+      setClasses([...classes, newClass.trim()]);
       setNewClass('');
       setSuccessMessage(`Class ${newClass} added successfully!`);
       setTimeout(() => setSuccessMessage(''), 3000);
@@ -167,39 +248,27 @@ function HODDashboard({ user }) {
         await addDoc(collection(db, 'departments'), {
           name: currentUser.department,
           classes: classes,
-          divisions: [newDivision]
+          divisions: [newDivision.trim()]
         });
       } else {
         const deptDoc = deptSnapshot.docs[0];
         const currentDivisions = deptDoc.data().divisions || [];
-        if (!currentDivisions.includes(newDivision)) {
-          await updateDoc(doc(db, 'departments', deptDoc.id), {
-            divisions: [...currentDivisions, newDivision]
-          });
+        if (currentDivisions.includes(newDivision.trim())) {
+          setErrorMessage('This division already exists!');
+          return;
         }
+        await updateDoc(doc(db, 'departments', deptDoc.id), {
+          divisions: [...currentDivisions, newDivision.trim()]
+        });
       }
 
-      setDivisions([...divisions, newDivision]);
+      setDivisions([...divisions, newDivision.trim()]);
       setNewDivision('');
       setSuccessMessage(`Division ${newDivision} added successfully!`);
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
       console.error('Error adding division:', error);
       setErrorMessage('Failed to add division: ' + error.message);
-    }
-  };
-
-  const handleDeleteTeacher = async (teacherId) => {
-    if (!window.confirm('Are you sure you want to delete this teacher?')) return;
-
-    try {
-      await deleteDoc(doc(db, 'teachers', teacherId));
-      setSuccessMessage('Teacher deleted successfully!');
-      fetchHODData();
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error) {
-      console.error('Error deleting teacher:', error);
-      setErrorMessage('Failed to delete teacher: ' + error.message);
     }
   };
 
@@ -225,6 +294,13 @@ function HODDashboard({ user }) {
         : [...prev.assignedDivisions, divisionName]
     }));
   };
+
+  const filteredStudents = students.filter(student =>
+    searchStudent === '' ||
+    student.name.toLowerCase().includes(searchStudent.toLowerCase()) ||
+    student.prn.toLowerCase().includes(searchStudent.toLowerCase()) ||
+    student.email.toLowerCase().includes(searchStudent.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -252,8 +328,12 @@ function HODDashboard({ user }) {
 
         <div className="stats-grid">
           <div className="stat-card">
-            <h3>Total Teachers</h3>
+            <h3>Teachers</h3>
             <div className="stat-value">{teachers.length}</div>
+          </div>
+          <div className="stat-card">
+            <h3>Students</h3>
+            <div className="stat-value">{students.length}</div>
           </div>
           <div className="stat-card">
             <h3>Classes</h3>
@@ -265,161 +345,277 @@ function HODDashboard({ user }) {
           </div>
         </div>
 
-        <div className="card">
-          <h3>➕ Add New Class</h3>
-          <form onSubmit={handleAddClass} style={{ display: 'flex', gap: '10px' }}>
-            <input
-              type="text"
-              placeholder="e.g., SE, TE, BE"
-              value={newClass}
-              onChange={(e) => setNewClass(e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <button type="submit" className="btn btn-success">Add Class</button>
-          </form>
-          <div style={{ marginTop: '15px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-            {classes.map(cls => (
-              <span key={cls} className="class-badge">{cls}</span>
-            ))}
-          </div>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '10px', marginTop: '30px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setActiveTab('teachers')}
+            className={activeTab === 'teachers' ? 'btn btn-success' : 'btn'}
+          >
+            👨‍🏫 Teachers
+          </button>
+          <button
+            onClick={() => setActiveTab('students')}
+            className={activeTab === 'students' ? 'btn btn-success' : 'btn'}
+          >
+            👨‍🎓 Students
+          </button>
+          <button
+            onClick={() => setActiveTab('departments')}
+            className={activeTab === 'departments' ? 'btn btn-success' : 'btn'}
+          >
+            🏛️ Departments
+          </button>
         </div>
 
-        <div className="card">
-          <h3>➕ Add New Division</h3>
-          <form onSubmit={handleAddDivision} style={{ display: 'flex', gap: '10px' }}>
-            <input
-              type="text"
-              placeholder="e.g., A, B, C"
-              value={newDivision}
-              onChange={(e) => setNewDivision(e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <button type="submit" className="btn btn-success">Add Division</button>
-          </form>
-          <div style={{ marginTop: '15px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-            {divisions.map(div => (
-              <span key={div} className="class-badge">{div}</span>
-            ))}
-          </div>
-        </div>
-
-        <div className="card">
-          <h3>👨‍🏫 Add New Teacher</h3>
-          <form onSubmit={handleAddTeacher}>
-            <div className="form-group">
-              <label>Full Name *</label>
-              <input
-                type="text"
-                placeholder="Teacher's full name"
-                value={newTeacher.name}
-                onChange={(e) => setNewTeacher({ ...newTeacher, name: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Phone Number (used as password) *</label>
-              <input
-                type="tel"
-                placeholder="Teacher's phone number"
-                value={newTeacher.phone}
-                onChange={(e) => setNewTeacher({ ...newTeacher, phone: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Email (optional)</label>
-              <input
-                type="email"
-                placeholder="Teacher's email"
-                value={newTeacher.email}
-                onChange={(e) => setNewTeacher({ ...newTeacher, email: e.target.value })}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Subject *</label>
-              <input
-                type="text"
-                placeholder="Subject taught"
-                value={newTeacher.subject}
-                onChange={(e) => setNewTeacher({ ...newTeacher, subject: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Assign Classes *</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
-                {classes.map(cls => (
-                  <label key={cls} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={newTeacher.assignedClasses.includes(cls)}
-                      onChange={() => toggleClassSelection(cls)}
-                    />
-                    <span>{cls}</span>
-                  </label>
-                ))}
-              </div>
-              {classes.length === 0 && <p style={{ color: '#666', fontSize: '14px' }}>Please add classes first</p>}
-            </div>
-
-            <div className="form-group">
-              <label>Assign Divisions *</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
-                {divisions.map(div => (
-                  <label key={div} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={newTeacher.assignedDivisions.includes(div)}
-                      onChange={() => toggleDivisionSelection(div)}
-                    />
-                    <span>{div}</span>
-                  </label>
-                ))}
-              </div>
-              {divisions.length === 0 && <p style={{ color: '#666', fontSize: '14px' }}>Please add divisions first</p>}
-            </div>
-
-            <button type="submit" className="btn btn-success" style={{ marginTop: '15px' }}>
-              ➕ Add Teacher
-            </button>
-          </form>
-        </div>
-
-        <div className="card">
-          <h3>📋 Teachers List ({teachers.length})</h3>
-          {teachers.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
-              No teachers added yet. Add your first teacher above!
-            </p>
-          ) : (
-            <div className="teacher-list">
-              {teachers.map(teacher => (
-                <div key={teacher.id} className="teacher-card">
-                  <h4>{teacher.name}</h4>
-                  <p><strong>Subject:</strong> {teacher.subject}</p>
-                  <p><strong>Phone:</strong> {teacher.phone}</p>
-                  {teacher.email && <p><strong>Email:</strong> {teacher.email}</p>}
-                  <p><strong>Classes:</strong> {teacher.assignedClasses?.join(', ') || 'None'}</p>
-                  <p><strong>Divisions:</strong> {teacher.assignedDivisions?.join(', ') || 'None'}</p>
-                  <p style={{ fontSize: '12px', color: '#999' }}>
-                    Added: {new Date(teacher.addedAt).toLocaleDateString()}
-                  </p>
-                  <button 
-                    onClick={() => handleDeleteTeacher(teacher.id)}
-                    className="btn btn-danger"
-                    style={{ marginTop: '10px', width: '100%' }}
-                  >
-                    🗑️ Delete Teacher
-                  </button>
+        {/* Teachers Tab */}
+        {activeTab === 'teachers' && (
+          <>
+            <div className="card">
+              <h3>👨‍🏫 Add New Teacher</h3>
+              <form onSubmit={handleAddTeacher}>
+                <div className="form-group">
+                  <label>Full Name *</label>
+                  <input
+                    type="text"
+                    placeholder="Teacher's full name"
+                    value={newTeacher.name}
+                    onChange={(e) => setNewTeacher({ ...newTeacher, name: e.target.value })}
+                    required
+                  />
                 </div>
-              ))}
+
+                <div className="form-group">
+                  <label>Phone Number (used as password) *</label>
+                  <input
+                    type="tel"
+                    placeholder="Teacher's phone number"
+                    value={newTeacher.phone}
+                    onChange={(e) => setNewTeacher({ ...newTeacher, phone: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Email (optional)</label>
+                  <input
+                    type="email"
+                    placeholder="Teacher's email"
+                    value={newTeacher.email}
+                    onChange={(e) => setNewTeacher({ ...newTeacher, email: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Subject *</label>
+                  <input
+                    type="text"
+                    placeholder="Subject taught"
+                    value={newTeacher.subject}
+                    onChange={(e) => setNewTeacher({ ...newTeacher, subject: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Assign Classes *</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
+                    {classes.map(cls => (
+                      <label key={cls} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={newTeacher.assignedClasses.includes(cls)}
+                          onChange={() => toggleClassSelection(cls)}
+                        />
+                        <span>{cls}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {classes.length === 0 && <p style={{ color: '#666', fontSize: '14px' }}>Please add classes first</p>}
+                </div>
+
+                <div className="form-group">
+                  <label>Assign Divisions *</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
+                    {divisions.map(div => (
+                      <label key={div} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={newTeacher.assignedDivisions.includes(div)}
+                          onChange={() => toggleDivisionSelection(div)}
+                        />
+                        <span>{div}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {divisions.length === 0 && <p style={{ color: '#666', fontSize: '14px' }}>Please add divisions first</p>}
+                </div>
+
+                <button type="submit" className="btn btn-success" style={{ marginTop: '15px' }}>
+                  ➕ Add Teacher
+                </button>
+              </form>
             </div>
-          )}
-        </div>
+
+            <div className="card">
+              <h3>📋 Teachers List ({teachers.length})</h3>
+              {teachers.length === 0 ? (
+                <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                  No teachers added yet. Add your first teacher above!
+                </p>
+              ) : (
+                <div className="teacher-list">
+                  {teachers.map(teacher => (
+                    <div key={teacher.id} className="teacher-card">
+                      <h4>{teacher.name}</h4>
+                      <p><strong>Subject:</strong> {teacher.subject}</p>
+                      <p><strong>Phone:</strong> {teacher.phone}</p>
+                      {teacher.email && <p><strong>Email:</strong> {teacher.email}</p>}
+                      <p><strong>Classes:</strong> {teacher.assignedClasses?.join(', ') || 'None'}</p>
+                      <p><strong>Divisions:</strong> {teacher.assignedDivisions?.join(', ') || 'None'}</p>
+                      <p style={{ fontSize: '12px', color: '#999' }}>
+                        Added: {new Date(teacher.addedAt).toLocaleDateString()}
+                      </p>
+                      <button 
+                        onClick={() => handleDeleteTeacher(teacher.id)}
+                        className="btn btn-danger"
+                        style={{ marginTop: '10px', width: '100%' }}
+                      >
+                        🗑️ Delete Teacher
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Students Tab */}
+        {activeTab === 'students' && (
+          <div className="card">
+            <h3>👨‍🎓 Students Management ({students.length})</h3>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <input
+                type="text"
+                placeholder="🔍 Search by name, PRN, or email..."
+                value={searchStudent}
+                onChange={(e) => setSearchStudent(e.target.value)}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            {filteredStudents.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                {searchStudent ? 'No students found matching your search.' : 'No students registered yet.'}
+              </p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>PRN</th>
+                      <th>Class</th>
+                      <th>Division</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th>Registered</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.map(student => (
+                      <tr key={student.id}>
+                        <td>{student.name}</td>
+                        <td>{student.prn}</td>
+                        <td>{student.class}</td>
+                        <td>{student.division}</td>
+                        <td>{student.email}</td>
+                        <td>{student.phone}</td>
+                        <td>{new Date(student.createdAt).toLocaleDateString()}</td>
+                        <td>
+                          <button
+                            onClick={() => handleDeleteStudent(student.id, student.name)}
+                            className="btn btn-danger"
+                            style={{ fontSize: '12px', padding: '6px 12px' }}
+                          >
+                            🗑️ Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Departments Tab */}
+        {activeTab === 'departments' && (
+          <>
+            <div className="card">
+              <h3>🏛️ Add New Department</h3>
+              <form onSubmit={handleAddDepartment} style={{ display: 'flex', gap: '10px' }}>
+                <input
+                  type="text"
+                  placeholder="e.g., Civil Engineering"
+                  value={newDepartment}
+                  onChange={(e) => setNewDepartment(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <button type="submit" className="btn btn-success">Add Department</button>
+              </form>
+              <div style={{ marginTop: '15px' }}>
+                <h4>All Departments ({departments.length})</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
+                  {departments.map(dept => (
+                    <span key={dept.id} className="class-badge">{dept.name}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <h3>➕ Manage Classes for {currentUser.department}</h3>
+              <form onSubmit={handleAddClass} style={{ display: 'flex', gap: '10px' }}>
+                <input
+                  type="text"
+                  placeholder="e.g., SE, TE, BE"
+                  value={newClass}
+                  onChange={(e) => setNewClass(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <button type="submit" className="btn btn-success">Add Class</button>
+              </form>
+              <div style={{ marginTop: '15px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {classes.map(cls => (
+                  <span key={cls} className="class-badge">{cls}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="card">
+              <h3>➕ Manage Divisions for {currentUser.department}</h3>
+              <form onSubmit={handleAddDivision} style={{ display: 'flex', gap: '10px' }}>
+                <input
+                  type="text"
+                  placeholder="e.g., A, B, C"
+                  value={newDivision}
+                  onChange={(e) => setNewDivision(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <button type="submit" className="btn btn-success">Add Division</button>
+              </form>
+              <div style={{ marginTop: '15px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {divisions.map(div => (
+                  <span key={div} className="class-badge">{div}</span>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
