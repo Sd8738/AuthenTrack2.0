@@ -1,11 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import InstallPWA from './InstallPWA';
 
 function RoleSelection() {
   const navigate = useNavigate();
 
   return (
     <div className="gradient-bg role-selection">
+      <InstallPWA />
+      
       <h1>🎓 AuthenTrack 2.0</h1>
       <h2 style={{ color: 'white', fontSize: '20px', marginBottom: '40px' }}>
         Select Your Role to Continue

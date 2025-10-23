@@ -490,6 +490,17 @@ table tr:hover {
   100% { transform: rotate(360deg); }
 }
 
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Prevent layout shift during loading */
 .gradient-bg {
   min-height: 100vh;

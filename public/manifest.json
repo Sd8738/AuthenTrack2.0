@@ -1,6 +1,7 @@
 {
   "short_name": "AuthenTrack",
-  "name": "AuthenTrack - Attendance Management",
+  "name": "AuthenTrack 2.0 - Attendance Management",
+  "description": "Smart attendance tracking system for students, teachers, and HODs",
   "icons": [
     {
       "src": "icon-192.png",
@@ -15,9 +16,12 @@
       "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "theme_color": "#FFA500",
-  "background_color": "#FFFFFF",
-  "orientation": "portrait"
+  "theme_color": "#667eea",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "categories": ["education", "productivity"],
+  "screenshots": []
 }
