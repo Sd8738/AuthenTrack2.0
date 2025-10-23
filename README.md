@@ -136,7 +136,7 @@ It’s designed for **colleges, universities, and institutions** aiming to digit
 
 ## 🧑‍💻 Developed By
 
-**Team AuthenTrack**  
+**Sumant Deshmukh**  
 Built with ❤️ using **React**, **Firebase**, and **Progressive Web App technologies**.
 
 ---
