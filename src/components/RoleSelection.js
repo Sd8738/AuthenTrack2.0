@@ -4,15 +4,6 @@ import { useNavigate } from 'react-router-dom';
 function RoleSelection() {
   const navigate = useNavigate();
 
-  const handleLogin = (role) => {
-    navigate('/login', { state: { role } });
-  };
-
-  const handleRegister = (role) => {
-    console.log('Navigating to register with role:', role); // Debug log
-    navigate('/register', { state: { role } });
-  };
-
   return (
     <div className="gradient-bg role-selection">
       <h1>🎓 AuthenTrack 2.0</h1>
@@ -21,28 +12,22 @@ function RoleSelection() {
       </h2>
       <div className="role-grid">
         {/* Student Card */}
-        <div className="role-card">
+        <div className="role-card" style={{ cursor: 'default' }}>
           <div style={{ fontSize: '64px', marginBottom: '20px' }}>👨‍🎓</div>
           <h3>Student</h3>
           <p>Mark attendance and view your records</p>
           <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <button 
               className="btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleLogin('student');
-              }}
-              style={{ width: '100%' }}
+              onClick={() => navigate('/login', { state: { role: 'student' } })}
+              style={{ width: '100%', fontSize: '16px', padding: '12px' }}
             >
               🔐 Login
             </button>
             <button 
               className="btn btn-success"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRegister('student');
-              }}
-              style={{ width: '100%' }}
+              onClick={() => navigate('/register', { state: { role: 'student' } })}
+              style={{ width: '100%', fontSize: '16px', padding: '12px' }}
             >
               📝 Register
             </button>
@@ -50,48 +35,49 @@ function RoleSelection() {
         </div>
 
         {/* Teacher Card */}
-        <div className="role-card">
+        <div className="role-card" style={{ cursor: 'default' }}>
           <div style={{ fontSize: '64px', marginBottom: '20px' }}>👨‍🏫</div>
           <h3>Teacher</h3>
           <p>Manage classes and track attendance</p>
-          <button 
-            className="btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleLogin('teacher');
-            }}
-            style={{ width: '100%', marginTop: '20px' }}
-          >
-            🔐 Login
-          </button>
-          <p style={{ fontSize: '12px', color: '#999', marginTop: '10px', fontStyle: 'italic' }}>
-            Teachers cannot self-register. Contact your HOD.
+          <div style={{ marginTop: '20px' }}>
+            <button 
+              className="btn"
+              onClick={() => navigate('/login', { state: { role: 'teacher' } })}
+              style={{ width: '100%', fontSize: '16px', padding: '12px' }}
+            >
+              🔐 Login
+            </button>
+          </div>
+          <p style={{ 
+            fontSize: '12px', 
+            color: 'rgba(255, 255, 255, 0.7)', 
+            marginTop: '15px', 
+            fontStyle: 'italic',
+            padding: '10px',
+            background: 'rgba(0, 0, 0, 0.2)',
+            borderRadius: '8px'
+          }}>
+            ℹ️ Teachers cannot self-register. Contact your HOD.
           </p>
         </div>
 
         {/* HOD Card */}
-        <div className="role-card">
+        <div className="role-card" style={{ cursor: 'default' }}>
           <div style={{ fontSize: '64px', marginBottom: '20px' }}>👨‍💼</div>
           <h3>HOD</h3>
           <p>Department administration and oversight</p>
           <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <button 
               className="btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleLogin('hod');
-              }}
-              style={{ width: '100%' }}
+              onClick={() => navigate('/login', { state: { role: 'hod' } })}
+              style={{ width: '100%', fontSize: '16px', padding: '12px' }}
             >
               🔐 Login
             </button>
             <button 
               className="btn btn-success"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRegister('hod');
-              }}
-              style={{ width: '100%' }}
+              onClick={() => navigate('/register', { state: { role: 'hod' } })}
+              style={{ width: '100%', fontSize: '16px', padding: '12px' }}
             >
               📝 Register
             </button>
