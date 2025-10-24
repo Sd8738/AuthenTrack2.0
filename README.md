@@ -136,6 +136,7 @@ It’s designed for **colleges, universities, and institutions** aiming to digit
 
 ## 🧑‍💻 Developed By
 
+|-------------|-------------|
 **Team CheckInSight** |
 **Sumant Deshmukh** **Team Lead** |
 **Akshaya Subhedar** |
