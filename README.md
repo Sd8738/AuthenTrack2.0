@@ -136,11 +136,11 @@ It’s designed for **colleges, universities, and institutions** aiming to digit
 
 ## 🧑‍💻 Developed By
 
-**Team CheckInSight**
-**Sumant Deshmukh** **Team Lead**
-**Akshaya Subhedar**
-**Anuja Patil**
-**Vedant Methe**
+**Team CheckInSight** |
+**Sumant Deshmukh** **Team Lead** |
+**Akshaya Subhedar** |
+**Anuja Patil** |
+**Vedant Methe** |
 Built with ❤️ using **React**, **Firebase**, and **Progressive Web App technologies**.
 
 ---
